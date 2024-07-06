@@ -4,10 +4,19 @@ import os
 from datetime import timedelta
 
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-
+ASGI_APPLICATION = 'quickRide.asgi.application'
 SECRET_KEY = 'your_secret_key'
 
 DEBUG = True
+
+CHANNEL_LAYERS = {
+    "default": {
+        "BACKEND": "channels_redis.core.RedisChannelLayer",
+        "CONFIG": {
+            "hosts": [("127.0.0.1", 6379)],  # Change if your Redis is running on a different host or port
+        },
+    },
+}
 
 ALLOWED_HOSTS = []
 
@@ -23,6 +32,7 @@ INSTALLED_APPS = [
     'rest_framework',
     'rest_framework_simplejwt',
     'rest_framework.authtoken',
+    'channels',
 ]
 
 MIDDLEWARE = [

@@ -24,10 +24,10 @@
             border-radius: 10px;
             box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
             margin-bottom: 20px;
-            display: none; /* Hide all cards initially */
+            display: none;
         }
         .card.active {
-            display: block; /* Show the active card */
+            display: block;
         }
         .card h3 {
             margin: 0;
@@ -69,37 +69,23 @@
 <body>
     <div class="container">
         <h2>Requested Trips</h2>
-        {% for trip in trips %}
-        <div class="card {% if forloop.first %}active{% endif %}" data-trip-id="{{ trip.id }}">
-            <h3>Trip {{ forloop.counter }}</h3>
-            <p><strong>Origin:</strong> <span title="{{ trip.origin }}">{{ trip.origin }}</span></p>
-            <p><strong>Destination:</strong> <span title="{{ trip.destination }}">{{ trip.destination }}</span></p>
-            <p><strong>User:</strong> {{ trip.user.name }}</p>
-            <p><strong>Driver:</strong> {% if trip.driver %}{{ trip.driver.name }}{% else %}N/A{% endif %}</p>
-            <p><strong>Status:</strong> {{ trip.get_status_display }}</p>
-            <p><strong>Payment Status:</strong> {{ trip.get_payment_status_display }}</p>
-            <p><strong>Price:</strong> ${{ trip.price }}</p>
-            <p><strong>Created At:</strong> {{ trip.created_at|date:"Y-m-d H:i" }}</p>
-            <div class="buttons">
-                <button class="accept">Accept</button>
-                <button class="reject">Reject</button>
-            </div>
-        </div>
-        {% endfor %}
+        <div id="trip-cards"></div>
     </div>
 
     <script>
         document.addEventListener('DOMContentLoaded', () => {
-            const cards = document.querySelectorAll('.card');
             let currentCardIndex = 0;
+            const cardsContainer = document.getElementById('trip-cards');
 
             function showCard(index) {
+                const cards = document.querySelectorAll('.card');
                 cards.forEach((card, i) => {
                     card.classList.toggle('active', i === index);
                 });
             }
 
             function handleReject() {
+                const cards = document.querySelectorAll('.card');
                 if (currentCardIndex < cards.length - 1) {
                     currentCardIndex++;
                     showCard(currentCardIndex);
@@ -109,21 +95,69 @@
             }
 
             function handleAccept(tripId) {
-                // Implement the accept logic here
                 console.log(`Trip ${tripId} accepted`);
                 alert(`Trip ${tripId} accepted`);
             }
 
-            document.querySelectorAll('.reject').forEach((button, index) => {
-                button.addEventListener('click', handleReject);
-            });
-
-            document.querySelectorAll('.accept').forEach((button, index) => {
-                button.addEventListener('click', () => {
-                    const tripId = cards[index].getAttribute('data-trip-id');
-                    handleAccept(tripId);
+            function attachEventHandlers() {
+                document.querySelectorAll('.reject').forEach((button, index) => {
+                    button.addEventListener('click', handleReject);
                 });
-            });
+
+                document.querySelectorAll('.accept').forEach((button, index) => {
+                    button.addEventListener('click', () => {
+                        const tripId = document.querySelectorAll('.card')[index].getAttribute('data-trip-id');
+                        handleAccept(tripId);
+                    });
+                });
+            }
+
+            function updateTrips(trips) {
+                cardsContainer.innerHTML = '';
+                trips.forEach((trip, index) => {
+                    const card = document.createElement('div');
+                    card.className = `card ${index === 0 ? 'active' : ''}`;
+                    card.dataset.tripId = trip.id;
+
+                    card.innerHTML = `
+                        <h3>Trip ${index + 1}</h3>
+                        <p><strong>Origin:</strong> <span title="${trip.origin}">${trip.origin}</span></p>
+                        <p><strong>Destination:</strong> <span title="${trip.destination}">${trip.destination}</span></p>
+                        <p><strong>User:</strong> ${trip.user__name}</p>
+                        <p><strong>Driver:</strong> ${trip.driver__user__name ? trip.driver__user__name : 'N/A'}</p>
+                        <p><strong>Status:</strong> ${trip.status}</p>
+                        <p><strong>Payment Status:</strong> ${trip.payment_status}</p>
+                        <p><strong>Price:</strong> $${trip.price}</p>
+                        <p><strong>Created At:</strong> ${new Date(trip.created_at).toLocaleString()}</p>
+                        <div class="buttons">
+                            <button class="accept">Accept</button>
+                            <button class="reject">Reject</button>
+                        </div>
+                    `;
+
+                    cardsContainer.appendChild(card);
+                });
+
+                attachEventHandlers();
+                showCard(currentCardIndex);
+            }
+
+            const socket = new WebSocket('ws://' + window.location.host + '/ws/trips/');
+
+            socket.onmessage = function(e) {
+                const data = JSON.parse(e.data);
+                console.log('New trip data received:', data.trips);
+                updateTrips(data.trips);
+            };
+
+            fetch('/driver/requested-trips/', {
+                headers: {
+                    'X-Requested-With': 'XMLHttpRequest'
+                }
+            })
+                .then(response => response.json())
+                .then(data => updateTrips(data.trips))
+                .catch(error => console.error('Error fetching trips:', error));
         });
     </script>
 </body>

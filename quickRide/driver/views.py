@@ -9,6 +9,7 @@ from .serializers import DriverRegistrationSerializer, UserSerializer, DriverSer
 from user.models import User, Trip
 from .models import Driver, Vehicle
 from django.contrib.auth import authenticate, login
+from django.http import JsonResponse
 
 class DriverRegistrationView(generics.GenericAPIView):
     serializer_class = DriverRegistrationSerializer
@@ -51,7 +52,36 @@ class DriverLoginTemplateView(View):
     def get(self, request):
         return render(request, 'driver/login_driver.html')
 
+# driver/views.py
+
+from django.http import JsonResponse
+from django.views import View
+from user.models import Trip
+from django.shortcuts import render
+from django.http import JsonResponse
+from django.views import View
+from user.models import Trip
+
+
 class RequestedTripsView(View):
     def get(self, request):
-        requested_trips = Trip.objects.filter(status='REQUESTED')
-        return render(request, 'driver/requested_trips.html', {'trips': requested_trips})
+        if request.headers.get('x-requested-with') == 'XMLHttpRequest':
+            requested_trips = Trip.objects.filter(status='REQUESTED').values(
+                'id',
+                'origin',
+                'destination',
+                'user__name',
+                'driver__user__name',
+                'status',
+                'payment_status',
+                'price',
+                'created_at'
+            )
+            trips_list = list(requested_trips)
+            return JsonResponse({'trips': trips_list})
+        else:
+            return render(request, 'driver/requested_trips.html')
+
+
+
+

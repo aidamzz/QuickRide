@@ -51,6 +51,32 @@ class UserLoginFormView(View):
     def get(self, request):
         return render(request, 'user/login.html')
 
+from django.shortcuts import render
+from django.views import View
+from rest_framework import generics, status, permissions
+from rest_framework.response import Response
+from rest_framework.permissions import AllowAny, IsAuthenticated
+from rest_framework_simplejwt.tokens import RefreshToken
+from django.contrib.auth import authenticate
+from django.conf import settings
+from rest_framework.views import APIView
+import requests
+import logging
+
+from .models import User, Trip
+from .serializers import UserSerializer, LoginSerializer, TripSerializer
+from channels.layers import get_channel_layer
+from asgiref.sync import async_to_sync
+
+def send_trip_update(trip_data):
+    channel_layer = get_channel_layer()
+    async_to_sync(channel_layer.group_send)(
+        'trips',
+        {
+            'type': 'send_trip_update',
+            'text': trip_data
+        }
+    )
 
 class TripCreateView(generics.CreateAPIView):
     queryset = Trip.objects.all()
@@ -58,8 +84,19 @@ class TripCreateView(generics.CreateAPIView):
     permission_classes = [IsAuthenticated]
 
     def perform_create(self, serializer):
-        serializer.save(user=self.request.user, status='REQUESTED', payment_status='PENDING')
-
+        trip = serializer.save(user=self.request.user, status='REQUESTED', payment_status='PENDING')
+        trip_data = {
+            'id': trip.id,
+            'origin': trip.origin,
+            'destination': trip.destination,
+            'user_name': trip.user.name,
+            'driver_name': trip.driver.name if trip.driver else 'N/A',
+            'status': trip.get_status_display(),
+            'payment_status': trip.get_payment_status_display(),
+            'price': trip.price,
+            'created_at': trip.created_at.strftime('%Y-%m-%d %H:%M:%S'),
+        }
+        send_trip_update(trip_data)
 
 class TripDetailView(generics.RetrieveUpdateAPIView):
     queryset = Trip.objects.all()

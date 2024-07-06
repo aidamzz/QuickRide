@@ -16,13 +16,17 @@
             height: 100vh;
         }
         .container {
-            width: 50%;
+            display: flex;
+            width: 80%;
             margin: auto;
             text-align: center;
             background-color: #fff;
             padding: 20px;
             border-radius: 10px;
             box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+        }
+        #map-container {
+            flex: 1;
         }
         #map {
             height: 400px;
@@ -60,23 +64,38 @@
         button:hover {
             background-color: #4554a0;
         }
+        #trip-info {
+            width: 30%;
+            padding: 20px;
+            background-color: #f0f0f0;
+            border-radius: 10px;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+            margin-left: 20px;
+            text-align: left;
+        }
     </style>
 </head>
 <body>
     <div class="container">
-        <h2>Request a Trip</h2>
-        <div id="map"></div>
-        <div class="info" id="route-info">
-            <p id="distance"></p>
-            <p id="duration"></p>
-            <p id="fare"></p>
+        <div id="map-container">
+            <h2>Request a Trip</h2>
+            <div id="map"></div>
+            <div class="info" id="route-info">
+                <p id="distance"></p>
+                <p id="duration"></p>
+                <p id="fare"></p>
+            </div>
+            <form id="trip-request-form">
+                <input type="hidden" id="origin" name="origin">
+                <input type="hidden" id="destination" name="destination">
+                <button type="button" id="confirm">Confirm</button>
+                <button type="submit" id="request-trip" style="display: none;">Request Trip</button>
+            </form>
         </div>
-        <form id="trip-request-form">
-            <input type="hidden" id="origin" name="origin">
-            <input type="hidden" id="destination" name="destination">
-            <button type="button" id="confirm">Confirm</button>
-            <button type="submit" id="request-trip" style="display: none;">Request Trip</button>
-        </form>
+        <div id="trip-info">
+            <h3>Trip Information</h3>
+            <div id="trip-details"></div>
+        </div>
     </div>
 
     <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
@@ -181,15 +200,49 @@
                 }
             })
             .then(data => {
-                if (data && data.success) {
+                if (data) {
                     alert('Trip request submitted successfully!');
-                    window.location.href = '/user/trips/';
+                    const tripData = {
+                        id: data.id,
+                        origin: data.origin,
+                        destination: data.destination,
+                        user_name: data.user.name,
+                        driver_name: data.driver ? data.driver.name : 'N/A',
+                        status: data.status,
+                        payment_status: data.payment_status,
+                        price: data.price,
+                        created_at: data.created_at,
+                    };
+                    updateTripInfo(tripData);
+                    sendWebSocketUpdate(tripData);
                 } else if (data && data.error) {
                     alert('Error submitting trip request: ' + data.error);
                 }
             })
             .catch(error => console.error('Error:', error));
         });
+
+        function sendWebSocketUpdate(tripData) {
+            const socket = new WebSocket('ws://' + window.location.host + '/ws/trips/');
+            socket.onopen = function() {
+                socket.send(JSON.stringify(tripData));
+            };
+        }
+
+        function updateTripInfo(tripData) {
+            const tripDetails = `
+                <p><strong>ID:</strong> ${tripData.id}</p>
+                <p><strong>Origin:</strong> ${tripData.origin}</p>
+                <p><strong>Destination:</strong> ${tripData.destination}</p>
+                <p><strong>User:</strong> ${tripData.user_name}</p>
+                <p><strong>Driver:</strong> ${tripData.driver_name}</p>
+                <p><strong>Status:</strong> ${tripData.status}</p>
+                <p><strong>Payment Status:</strong> ${tripData.payment_status}</p>
+                <p><strong>Price:</strong> $${tripData.price}</p>
+                <p><strong>Created At:</strong> ${new Date(tripData.created_at).toLocaleString()}</p>
+            `;
+            document.getElementById('trip-details').innerHTML = tripDetails;
+        }
 
         function getCookie(name) {
             let cookieValue = null;
@@ -207,6 +260,15 @@
         }
 
         window.onload = initMap;
+
+        // WebSocket to update trip info in real-time
+        const socket = new WebSocket('ws://' + window.location.host + '/ws/trips/');
+
+        socket.onmessage = function(e) {
+            const data = JSON.parse(e.data);
+            console.log('New trip data received:', data);
+            updateTripInfo(data);
+        };
 
     </script>
 </body>

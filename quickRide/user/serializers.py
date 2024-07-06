@@ -25,5 +25,12 @@ class LoginSerializer(serializers.Serializer):
 class TripSerializer(serializers.ModelSerializer):
     class Meta:
         model = Trip
-        fields = ['id', 'user', 'driver', 'origin', 'destination','price', 'status', 'payment_status', 'created_at', 'updated_at']
+        fields = ['id', 'user', 'driver', 'origin', 'destination', 'price', 'status', 'payment_status', 'created_at', 'updated_at']
         read_only_fields = ['id', 'user', 'status', 'payment_status', 'created_at', 'updated_at']
+
+    def create(self, validated_data):
+        # Convert price to a string to ensure proper handling
+        if 'price' in validated_data:
+            validated_data['price'] = str(validated_data['price'])
+        
+        return Trip.objects.create(**validated_data)
