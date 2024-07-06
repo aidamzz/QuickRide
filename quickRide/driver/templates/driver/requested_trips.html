@@ -1,0 +1,130 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Requested Trips</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #f0f0f0;
+            margin: 0;
+            padding: 0;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+        }
+        .container {
+            width: 80%;
+            margin: auto;
+            padding: 20px;
+        }
+        .card {
+            background-color: #fff;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+            margin-bottom: 20px;
+            display: none; /* Hide all cards initially */
+        }
+        .card.active {
+            display: block; /* Show the active card */
+        }
+        .card h3 {
+            margin: 0;
+            margin-bottom: 10px;
+            font-size: 20px;
+            color: #333;
+        }
+        .card p {
+            margin: 5px 0;
+            font-size: 16px;
+            color: #666;
+        }
+        .buttons {
+            margin-top: 20px;
+            display: flex;
+            justify-content: space-between;
+        }
+        button {
+            padding: 10px 20px;
+            background-color: #4c4eaf;
+            color: #ffffff;
+            border: none;
+            border-radius: 5px;
+            font-size: 16px;
+            cursor: pointer;
+            transition: background-color 0.3s ease;
+        }
+        button:hover {
+            background-color: #4554a0;
+        }
+        button.reject {
+            background-color: #e74c3c;
+        }
+        button.reject:hover {
+            background-color: #c0392b;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h2>Requested Trips</h2>
+        {% for trip in trips %}
+        <div class="card {% if forloop.first %}active{% endif %}" data-trip-id="{{ trip.id }}">
+            <h3>Trip {{ forloop.counter }}</h3>
+            <p><strong>Origin:</strong> <span title="{{ trip.origin }}">{{ trip.origin }}</span></p>
+            <p><strong>Destination:</strong> <span title="{{ trip.destination }}">{{ trip.destination }}</span></p>
+            <p><strong>User:</strong> {{ trip.user.name }}</p>
+            <p><strong>Driver:</strong> {% if trip.driver %}{{ trip.driver.name }}{% else %}N/A{% endif %}</p>
+            <p><strong>Status:</strong> {{ trip.get_status_display }}</p>
+            <p><strong>Payment Status:</strong> {{ trip.get_payment_status_display }}</p>
+            <p><strong>Price:</strong> ${{ trip.price }}</p>
+            <p><strong>Created At:</strong> {{ trip.created_at|date:"Y-m-d H:i" }}</p>
+            <div class="buttons">
+                <button class="accept">Accept</button>
+                <button class="reject">Reject</button>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            const cards = document.querySelectorAll('.card');
+            let currentCardIndex = 0;
+
+            function showCard(index) {
+                cards.forEach((card, i) => {
+                    card.classList.toggle('active', i === index);
+                });
+            }
+
+            function handleReject() {
+                if (currentCardIndex < cards.length - 1) {
+                    currentCardIndex++;
+                    showCard(currentCardIndex);
+                } else {
+                    alert('No more trips to show.');
+                }
+            }
+
+            function handleAccept(tripId) {
+                // Implement the accept logic here
+                console.log(`Trip ${tripId} accepted`);
+                alert(`Trip ${tripId} accepted`);
+            }
+
+            document.querySelectorAll('.reject').forEach((button, index) => {
+                button.addEventListener('click', handleReject);
+            });
+
+            document.querySelectorAll('.accept').forEach((button, index) => {
+                button.addEventListener('click', () => {
+                    const tripId = cards[index].getAttribute('data-trip-id');
+                    handleAccept(tripId);
+                });
+            });
+        });
+    </script>
+</body>
+</html>

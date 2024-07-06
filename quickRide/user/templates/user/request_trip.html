@@ -1,0 +1,213 @@
+<!DOCTYPE html>
+<html>
+<head>
+    {% load static %}
+    <title>Request a Trip</title>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css" />
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #f0f0f0;
+            margin: 0;
+            padding: 0;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+        }
+        .container {
+            width: 50%;
+            margin: auto;
+            text-align: center;
+            background-color: #fff;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+        }
+        #map {
+            height: 400px;
+            width: 100%;
+            margin-bottom: 20px;
+            border-radius: 10px;
+            border: 1px solid #ccc;
+        }
+        .info {
+            display: none;
+            margin-top: 10px;
+            font-size: 16px;
+            color: #333;
+        }
+        .info p {
+            margin: 5px 0;
+        }
+        .info.visible {
+            display: block;
+        }
+        form {
+            margin-top: 20px;
+        }
+        button {
+            padding: 10px 20px;
+            background-color: #4c4eaf;
+            color: #ffffff;
+            border: none;
+            border-radius: 5px;
+            font-size: 16px;
+            cursor: pointer;
+            transition: background-color 0.3s ease;
+            margin-right: 10px;
+        }
+        button:hover {
+            background-color: #4554a0;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h2>Request a Trip</h2>
+        <div id="map"></div>
+        <div class="info" id="route-info">
+            <p id="distance"></p>
+            <p id="duration"></p>
+            <p id="fare"></p>
+        </div>
+        <form id="trip-request-form">
+            <input type="hidden" id="origin" name="origin">
+            <input type="hidden" id="destination" name="destination">
+            <button type="button" id="confirm">Confirm</button>
+            <button type="submit" id="request-trip" style="display: none;">Request Trip</button>
+        </form>
+    </div>
+
+    <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
+    <script>
+        let map, originMarker, destinationMarker;
+        let originLatLng, destinationLatLng;
+        let fareData = null;  // Store fare data globally
+
+        function initMap() {
+            map = L.map('map').setView([51.505, -0.09], 13);
+
+            L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+            }).addTo(map);
+
+            map.on('click', function(event) {
+                if (!originMarker) {
+                    originLatLng = event.latlng;
+                    originMarker = L.marker(originLatLng).addTo(map)
+                        .bindPopup('Origin').openPopup();
+                    document.getElementById('origin').value = `${originLatLng.lng},${originLatLng.lat}`;
+                } else if (!destinationMarker) {
+                    destinationLatLng = event.latlng;
+                    destinationMarker = L.marker(destinationLatLng).addTo(map)
+                        .bindPopup('Destination').openPopup();
+                    document.getElementById('destination').value = `${destinationLatLng.lng},${destinationLatLng.lat}`;
+                }
+            });
+        }
+
+        document.getElementById('confirm').addEventListener('click', async function() {
+            const origin = document.getElementById('origin').value;
+            const destination = document.getElementById('destination').value;
+
+            if (!origin || !destination) {
+                alert('Please select both origin and destination.');
+                return;
+            }
+
+            const csrftoken = getCookie('csrftoken');
+            const accessToken = localStorage.getItem('access_token');  // Get the token from local storage
+            console.log('CSRF Token:', csrftoken);
+            console.log('Access Token:', accessToken);
+
+            try {
+                const response = await fetch(`/user/api/route-info/?origin=${origin}&destination=${destination}`, {
+                    headers: {
+                        'X-CSRFToken': csrftoken,
+                        'Authorization': `Bearer ${accessToken}`,  // Include the JWT token here
+                    },
+                });
+                console.log(response)
+                console.log('Response Status:', response.status);
+
+                if (!response.ok) {
+                    throw new Error('Network response was not ok');
+                }
+
+                const data = await response.json();
+
+                if (data.error) {
+                    alert(data.error);
+                } else {
+                    fareData = data.fare.toFixed(2);  // Store fare data globally
+                    document.getElementById('distance').innerText = `Distance: ${data.distance.toFixed(2)} km`;
+                    document.getElementById('duration').innerText = `Duration: ${data.duration.toFixed(2)} minutes`;
+                    document.getElementById('fare').innerText = `Estimated Fare: $${fareData}`;
+
+                    document.getElementById('route-info').classList.add('visible');
+                    document.getElementById('request-trip').style.display = 'inline-block';
+                }
+            } catch (error) {
+                console.error('Error:', error);
+            }
+        });
+
+        document.getElementById('trip-request-form').addEventListener('submit', function(e) {
+            e.preventDefault();
+
+            const origin = document.getElementById('origin').value;
+            const destination = document.getElementById('destination').value;
+            const accessToken = localStorage.getItem('access_token');  // Get the token from local storage
+
+            fetch('/user/trips/', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${accessToken}`,
+                    'X-CSRFToken': getCookie('csrftoken'),
+                },
+                body: JSON.stringify({
+                    origin: origin,
+                    destination: destination,
+                    price: fareData  // Use the stored fare data
+                }),
+            })
+            .then(response => {
+                if (response.status === 401) {
+                    window.location.href = '/user/login/';
+                } else {
+                    return response.json();
+                }
+            })
+            .then(data => {
+                if (data && data.success) {
+                    alert('Trip request submitted successfully!');
+                    window.location.href = '/user/trips/';
+                } else if (data && data.error) {
+                    alert('Error submitting trip request: ' + data.error);
+                }
+            })
+            .catch(error => console.error('Error:', error));
+        });
+
+        function getCookie(name) {
+            let cookieValue = null;
+            if (document.cookie && document.cookie !== '') {
+                const cookies = document.cookie.split(';');
+                for (let i = 0; i < cookies.length; i++) {
+                    const cookie = cookies[i].trim();
+                    if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                        cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                        break;
+                    }
+                }
+            }
+            return cookieValue;
+        }
+
+        window.onload = initMap;
+
+    </script>
+</body>
+</html>

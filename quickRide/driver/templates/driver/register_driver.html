@@ -52,12 +52,66 @@
     <div class="container">
         <div class="register-form">
             <h2>Driver Registration</h2>
-            <form method="post">
-                {% csrf_token %}
-                {{ form.as_p }}
+            <form id="register-form">
+                <input type="text" id="name" name="name" placeholder="Name" required>
+                <input type="text" id="phone_number" name="phone_number" placeholder="Phone Number" required>
+                <input type="password" id="password" name="password" placeholder="Password" required>
+                <input type="text" id="vehicle_model" name="vehicle_model" placeholder="Vehicle Model" required>
+                <input type="text" id="vehicle_number" name="vehicle_number" placeholder="Vehicle Number" required>
                 <button type="submit">Register</button>
             </form>
         </div>
     </div>
+
+    <script>
+        function getCookie(name) {
+            let cookieValue = null;
+            if (document.cookie && document.cookie !== '') {
+                const cookies = document.cookie.split(';');
+                for (let i = 0; i < cookies.length; i++) {
+                    const cookie = cookies[i].trim();
+                    if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                        cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                        break;
+                    }
+                }
+            }
+            return cookieValue;
+        }
+
+        document.getElementById('register-form').addEventListener('submit', async function(e) {
+            e.preventDefault();
+
+            const csrftoken = getCookie('csrftoken');
+            const name = document.getElementById('name').value;
+            const phoneNumber = document.getElementById('phone_number').value;
+            const password = document.getElementById('password').value;
+            const vehicleModel = document.getElementById('vehicle_model').value;
+            const vehicleNumber = document.getElementById('vehicle_number').value;
+
+            const response = await fetch('/driver/api/register/', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': csrftoken,
+                },
+                body: JSON.stringify({
+                    name: name,
+                    phone_number: phoneNumber,
+                    password: password,
+                    vehicle_model: vehicleModel,
+                    vehicle_number: vehicleNumber,
+                }),
+            });
+
+            if (response.ok) {
+                alert('Registration successful!');
+                window.location.href = '/';
+            } else {
+                const errorData = await response.json();
+                alert(`Registration failed: ${errorData.error}`);
+            }
+        });
+    </script>
 </body>
 </html>

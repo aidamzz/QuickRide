@@ -1,6 +1,7 @@
-from rest_framework import serializers
-from .models import User
+# user/serializers.py
 
+from rest_framework import serializers
+from .models import User, Trip
 
 class UserSerializer(serializers.ModelSerializer):
     class Meta:
@@ -17,7 +18,12 @@ class UserSerializer(serializers.ModelSerializer):
         user.save()
         return user
 
-
 class LoginSerializer(serializers.Serializer):
     phone_number = serializers.CharField()
     password = serializers.CharField()
+
+class TripSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Trip
+        fields = ['id', 'user', 'driver', 'origin', 'destination','price', 'status', 'payment_status', 'created_at', 'updated_at']
+        read_only_fields = ['id', 'user', 'status', 'payment_status', 'created_at', 'updated_at']

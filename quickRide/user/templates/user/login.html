@@ -84,7 +84,7 @@
             const phoneNumber = document.getElementById('phone_number').value;
             const password = document.getElementById('password').value;
 
-            const response = await fetch('/user/api/login/', {
+            const response = await fetch('/user/login/', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
@@ -97,7 +97,11 @@
             });
 
             if (response.ok) {
+                const data = await response.json();
+                localStorage.setItem('access_token', data.access);
+                localStorage.setItem('refresh_token', data.refresh);
                 alert('Login successful!');
+                window.location.href = '/user/request-trip/';
             } else {
                 const errorData = await response.json();
                 alert(`Login failed: ${errorData.error}`);

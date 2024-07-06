@@ -1,8 +1,11 @@
+# driver/urls.py
 from django.urls import path
-from .views import DriverRegistrationView, register_vehicle, DriverLoginView
+from .views import DriverRegistrationView, DriverLoginView, DriverRegistrationTemplateView, DriverLoginTemplateView, RequestedTripsView
 
 urlpatterns = [
-    path('register/', DriverRegistrationView.as_view(), name='register_driver'),
-    path('register_vehicle/', register_vehicle, name='register_vehicle'),
-    path('login/', DriverLoginView.as_view(), name='driver_login'),
+    path('api/register/', DriverRegistrationView.as_view(), name='api_register_driver'),
+    path('api/login/', DriverLoginView.as_view(), name='api_login_driver'),
+    path('register/', DriverRegistrationTemplateView.as_view(), name='register_driver_template'),
+    path('login/', DriverLoginTemplateView.as_view(), name='login_driver_template'),
+    path('requested-trips/', RequestedTripsView.as_view(), name='requested-trips'), 
 ]

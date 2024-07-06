@@ -4,7 +4,6 @@
     {% load static %}
     <title>Driver Login</title>
     <link rel="stylesheet" type="text/css" href="{% static 'css/styles.css' %}">
-    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
     <style>
         body {
             font-family: Arial, sans-serif;
@@ -98,6 +97,7 @@
 
             if (response.ok) {
                 alert('Login successful!');
+                window.location.href = '/'; // Redirect to home or any other page after successful login
             } else {
                 const errorData = await response.json();
                 alert(`Login failed: ${errorData.error}`);
