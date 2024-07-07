@@ -10,6 +10,15 @@ from user.models import User, Trip
 from .models import Driver, Vehicle
 from django.contrib.auth import authenticate, login
 from django.http import JsonResponse
+from rest_framework import generics, permissions
+from user.models import Trip
+from .models import Driver, Vehicle
+from .serializers import DriverSerializer, VehicleSerializer, DriverRegistrationSerializer
+from rest_framework.views import APIView
+from rest_framework.response import Response
+from django.shortcuts import render
+from django.contrib.auth.decorators import login_required
+from user.serializers import TripSerializer
 
 class DriverRegistrationView(generics.GenericAPIView):
     serializer_class = DriverRegistrationSerializer
@@ -82,6 +91,33 @@ class RequestedTripsView(View):
         else:
             return render(request, 'driver/requested_trips.html')
 
+class DriverProfileView(generics.RetrieveUpdateAPIView):
+    queryset = Driver.objects.all()
+    serializer_class = DriverSerializer
+    permission_classes = [permissions.IsAuthenticated]
+
+    def get_object(self):
+        return self.request.user.driver
+
+class VehicleProfileView(generics.RetrieveUpdateAPIView):
+    queryset = Vehicle.objects.all()
+    serializer_class = VehicleSerializer
+    permission_classes = [permissions.IsAuthenticated]
+
+    def get_object(self):
+        return self.request.user.driver.vehicle_set.first()
+
+class DriverAcceptedTripsView(APIView):
+    permission_classes = [permissions.IsAuthenticated]
+
+    def get(self, request):
+        trips = Trip.objects.filter(driver=request.user.driver, status='ACCEPTED')
+        serializer = TripSerializer(trips, many=True)
+        return Response(serializer.data)
+
+
+def driver_profile(request):
+    return render(request, 'driver/profile.html')
 
 
 

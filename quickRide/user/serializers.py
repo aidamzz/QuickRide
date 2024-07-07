@@ -34,3 +34,16 @@ class TripSerializer(serializers.ModelSerializer):
             validated_data['price'] = str(validated_data['price'])
         
         return Trip.objects.create(**validated_data)
+
+class UserProfileSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = User
+        fields = ['name', 'phone_number']
+        read_only_fields = ['phone_number']
+
+class TripDetailSerializer(serializers.ModelSerializer):
+    driver_name = serializers.CharField(source='driver.user.name', read_only=True)
+
+    class Meta:
+        model = Trip
+        fields = ['origin', 'destination', 'driver_name', 'status', 'payment_status', 'price', 'created_at']

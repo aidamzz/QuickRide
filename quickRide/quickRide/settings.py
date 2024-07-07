@@ -17,7 +17,7 @@ CHANNEL_LAYERS = {
         },
     },
 }
-
+LOGIN_URL = '/driver/login/'
 ALLOWED_HOSTS = []
 
 INSTALLED_APPS = [

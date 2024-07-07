@@ -1,0 +1,165 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Driver Profile</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #f0f0f0;
+            margin: 0;
+            padding: 20px;
+        }
+        .container {
+            width: 80%;
+            margin: auto;
+            background-color: #fff;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+        }
+        h2 {
+            text-align: center;
+        }
+        form {
+            margin-bottom: 20px;
+        }
+        label {
+            display: block;
+            margin-bottom: 5px;
+        }
+        input, select {
+            width: 100%;
+            padding: 8px;
+            margin-bottom: 10px;
+            border: 1px solid #ccc;
+            border-radius: 5px;
+        }
+        button {
+            padding: 10px 20px;
+            background-color: #4c4eaf;
+            color: #ffffff;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            transition: background-color 0.3s ease;
+        }
+        button:hover {
+            background-color: #4554a0;
+        }
+        .trips {
+            margin-top: 20px;
+        }
+        .trip {
+            padding: 10px;
+            border: 1px solid #ccc;
+            border-radius: 5px;
+            margin-bottom: 10px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h2>Driver Profile</h2>
+        
+        <form id="driver-form">
+            <h3>Driver Information</h3>
+            <label for="phone_number">Phone Number:</label>
+            <input type="text" id="phone_number" name="phone_number">
+            <button type="button" onclick="updateDriverInfo()">Update Driver Info</button>
+        </form>
+
+        <form id="vehicle-form">
+            <h3>Vehicle Information</h3>
+            <label for="model">Model:</label>
+            <input type="text" id="model" name="model">
+            <label for="number">Number:</label>
+            <input type="text" id="number" name="number">
+            <button type="button" onclick="updateVehicleInfo()">Update Vehicle Info</button>
+        </form>
+
+        <div class="trips">
+            <h3>Accepted Trips</h3>
+            <div id="trips-container"></div>
+        </div>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            fetchDriverInfo();
+            fetchVehicleInfo();
+            fetchAcceptedTrips();
+        });
+
+        function fetchDriverInfo() {
+            fetch('/driver/profile/api/driver/')
+                .then(response => response.json())
+                .then(data => {
+                    document.getElementById('phone_number').value = data.phone_number;
+                });
+        }
+
+        function updateDriverInfo() {
+            const phone_number = document.getElementById('phone_number').value;
+            fetch('/driver/profile/api/driver/', {
+                method: 'PUT',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({ phone_number }),
+            })
+            .then(response => response.json())
+            .then(data => {
+                alert('Driver information updated successfully.');
+            });
+        }
+
+        function fetchVehicleInfo() {
+            fetch('/driver/profile/api/vehicle/')
+                .then(response => response.json())
+                .then(data => {
+                    document.getElementById('model').value = data.model;
+                    document.getElementById('number').value = data.number;
+                });
+        }
+
+        function updateVehicleInfo() {
+            const model = document.getElementById('model').value;
+            const number = document.getElementById('number').value;
+            fetch('/driver/profile/api/vehicle/', {
+                method: 'PUT',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({ model, number }),
+            })
+            .then(response => response.json())
+            .then(data => {
+                alert('Vehicle information updated successfully.');
+            });
+        }
+
+        function fetchAcceptedTrips() {
+            fetch('/driver/profile/api/trips/')
+                .then(response => response.json())
+                .then(data => {
+                    const tripsContainer = document.getElementById('trips-container');
+                    tripsContainer.innerHTML = '';
+                    data.forEach(trip => {
+                        const tripDiv = document.createElement('div');
+                        tripDiv.classList.add('trip');
+                        tripDiv.innerHTML = `
+                            <p><strong>Origin:</strong> ${trip.origin}</p>
+                            <p><strong>Destination:</strong> ${trip.destination}</p>
+                            <p><strong>User:</strong> ${trip.user.name}</p>
+                            <p><strong>Status:</strong> ${trip.status}</p>
+                            <p><strong>Payment Status:</strong> ${trip.payment_status}</p>
+                            <p><strong>Price:</strong> $${trip.price}</p>
+                            <p><strong>Created At:</strong> ${new Date(trip.created_at).toLocaleString()}</p>
+                        `;
+                        tripsContainer.appendChild(tripDiv);
+                    });
+                });
+        }
+    </script>
+</body>
+</html>

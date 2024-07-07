@@ -12,7 +12,7 @@ import requests
 import logging
 
 from .models import User, Trip
-from .serializers import UserSerializer, LoginSerializer, TripSerializer
+from .serializers import UserSerializer, LoginSerializer, TripSerializer, UserProfileSerializer, TripDetailSerializer
 
 
 class RegisterView(generics.CreateAPIView):
@@ -196,4 +196,24 @@ class RouteInfoView(APIView):
         except (IndexError, KeyError) as e:
             logging.error(f'Error processing route information: {e}, response data: {data}')
             return Response({'error': 'Error processing route information.'}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+class UserProfileView(generics.RetrieveUpdateAPIView):
+    queryset = User.objects.all()
+    serializer_class = UserProfileSerializer
+    permission_classes = [permissions.IsAuthenticated]
+
+    def get_object(self):
+        return self.request.user
+
+class UserTripsView(APIView):
+    permission_classes = [permissions.IsAuthenticated]
+
+    def get(self, request):
+        trips = Trip.objects.filter(user=request.user)
+        serializer = TripDetailSerializer(trips, many=True)
+        return Response(serializer.data)
+
+class UserProfileTemplateView(View):
+    def get(self, request):
+        return render(request, 'user/profile.html')
 

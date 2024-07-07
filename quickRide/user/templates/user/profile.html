@@ -1,0 +1,137 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>User Profile</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #f0f0f0;
+            margin: 0;
+            padding: 0;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+        .container {
+            width: 60%;
+            background-color: #fff;
+            padding: 20px;
+            margin: 20px 0;
+            border-radius: 10px;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+        }
+        h2 {
+            text-align: center;
+        }
+        form {
+            display: flex;
+            flex-direction: column;
+            margin-bottom: 20px;
+        }
+        form input {
+            margin: 10px 0;
+            padding: 10px;
+            border: 1px solid #ccc;
+            border-radius: 5px;
+        }
+        form button {
+            padding: 10px;
+            background-color: #4c4eaf;
+            color: #fff;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+        .trips {
+            margin-top: 20px;
+        }
+        .trip {
+            background-color: #f9f9f9;
+            padding: 10px;
+            margin: 10px 0;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h2>User Profile</h2>
+        <form id="profile-form">
+            <input type="text" id="name" name="name" placeholder="Name">
+            <input type="text" id="phone_number" name="phone_number" placeholder="Phone Number" readonly>
+            <button type="submit">Update Profile</button>
+        </form>
+        <div class="trips">
+            <h2>Previous Trips</h2>
+            <div id="trips-list"></div>
+        </div>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function () {
+            const profileForm = document.getElementById('profile-form');
+            const tripsList = document.getElementById('trips-list');
+
+            // Fetch user profile
+            fetch('/user/api/profile/', {
+                headers: {
+                    'Authorization': `Bearer ${localStorage.getItem('access_token')}`
+                }
+            })
+            .then(response => response.json())
+            .then(data => {
+                document.getElementById('name').value = data.name;
+                document.getElementById('phone_number').value = data.phone_number;
+            });
+
+            // Fetch user trips
+            fetch('/user/api/trips/', {
+                headers: {
+                    'Authorization': `Bearer ${localStorage.getItem('access_token')}`
+                }
+            })
+            .then(response => response.json())
+            .then(data => {
+                data.forEach(trip => {
+                    const tripElement = document.createElement('div');
+                    tripElement.className = 'trip';
+                    tripElement.innerHTML = `
+                        <p><strong>Origin:</strong> ${trip.origin}</p>
+                        <p><strong>Destination:</strong> ${trip.destination}</p>
+                        <p><strong>Driver:</strong> ${trip.driver_name}</p>
+                        <p><strong>Status:</strong> ${trip.status}</p>
+                        <p><strong>Payment Status:</strong> ${trip.payment_status}</p>
+                        <p><strong>Price:</strong> $${trip.price}</p>
+                        <p><strong>Created At:</strong> ${new Date(trip.created_at).toLocaleString()}</p>
+                    `;
+                    tripsList.appendChild(tripElement);
+                });
+            });
+
+            // Handle profile form submission
+            profileForm.addEventListener('submit', function (e) {
+                e.preventDefault();
+
+                const name = document.getElementById('name').value;
+
+                fetch('/user/api/profile/', {
+                    method: 'PUT',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${localStorage.getItem('access_token')}`
+                    },
+                    body: JSON.stringify({ name })
+                })
+                .then(response => response.json())
+                .then(data => {
+                    alert('Profile updated successfully');
+                })
+                .catch(error => {
+                    console.error('Error:', error);
+                });
+            });
+        });
+    </script>
+</body>
+</html>
