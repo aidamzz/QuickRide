@@ -75,20 +75,22 @@
             function updateTrips(trips) {
                 cardsContainer.innerHTML = '';
                 trips.forEach(trip => {
+                    console.log('Trip data:', trip); // Debugging line to check trip data
+
                     const card = document.createElement('div');
                     card.className = 'card';
                     card.dataset.tripId = trip.id;
 
                     card.innerHTML = `
                         <h3>Trip ${trip.id}</h3>
-                        <p><strong>Origin:</strong> ${trip.origin_address}</p>
-                        <p><strong>Destination:</strong> ${trip.destination_address}</p>
-                        <p><strong>User:</strong> ${trip.user_name}</p>
-                        <p><strong>Driver:</strong> ${trip.driver_name}</p>
-                        <p><strong>Status:</strong> ${trip.status}</p>
-                        <p><strong>Payment Status:</strong> ${trip.payment_status}</p>
-                        <p><strong>Price:</strong> $${trip.price}</p>
-                        <p><strong>Created At:</strong> ${new Date(trip.created_at).toLocaleString()}</p>
+                        <p><strong>Origin:</strong> ${trip.origin }</p>
+                        <p><strong>Destination:</strong> ${trip.destination}</p>
+                        <p><strong>User:</strong> ${trip.user__name }</p>
+                        <p><strong>Driver:</strong> ${trip.driver_name || 'N/A'}</p>
+                        <p><strong>Status:</strong> ${trip.status || 'N/A'}</p>
+                        <p><strong>Payment Status:</strong> ${trip.payment_status || 'N/A'}</p>
+                        <p><strong>Price:</strong> $${trip.price || 'N/A'}</p>
+                        <p><strong>Created At:</strong> ${trip.created_at ? new Date(trip.created_at).toLocaleString() : 'N/A'}</p>
                         <div class="buttons">
                             <button class="accept">Accept</button>
                             <button class="reject">Reject</button>
