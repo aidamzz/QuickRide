@@ -77,32 +77,36 @@
         }
 
         document.getElementById('login-form').addEventListener('submit', async function(e) {
-            e.preventDefault();
+    e.preventDefault();
 
-            const csrftoken = getCookie('csrftoken');
-            const phoneNumber = document.getElementById('phone_number').value;
-            const password = document.getElementById('password').value;
+    const csrftoken = getCookie('csrftoken');
+    const phoneNumber = document.getElementById('phone_number').value;
+    const password = document.getElementById('password').value;
 
-            const response = await fetch('/driver/api/login/', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'X-CSRFToken': csrftoken,
-                },
-                body: JSON.stringify({
-                    phone_number: phoneNumber,
-                    password: password,
-                }),
-            });
+    const response = await fetch('/driver/api/login/', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-CSRFToken': csrftoken,
+        },
+        body: JSON.stringify({
+            phone_number: phoneNumber,
+            password: password,
+        }),
+    });
 
-            if (response.ok) {
-                alert('Login successful!');
-                window.location.href = '/'; // Redirect to home or any other page after successful login
-            } else {
-                const errorData = await response.json();
-                alert(`Login failed: ${errorData.error}`);
-            }
-        });
+    if (response.ok) {
+        const data = await response.json();
+        localStorage.setItem('access_token', data.access); // Store the access token
+        localStorage.setItem('refresh_token', data.refresh); // Optionally store the refresh token
+        alert('Login successful!');
+        window.location.href = '/driver/requested-trips/'; // Redirect to home or any other page after successful login
+    } else {
+        const errorData = await response.json();
+        alert(`Login failed: ${errorData.error}`);
+    }
+});
+
     </script>
 </body>
 </html>

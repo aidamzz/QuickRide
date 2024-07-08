@@ -46,3 +46,15 @@ class DriverRegistrationSerializer(serializers.Serializer):
         )
 
         return driver
+    
+class LoginSerializer(serializers.Serializer):
+    phone_number = serializers.CharField()
+    password = serializers.CharField()
+from rest_framework import serializers
+from user.models import Trip
+
+class TripSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Trip
+        fields = ['id', 'origin', 'destination', 'user', 'driver', 'status', 'payment_status', 'price', 'created_at', 'updated_at']
+        read_only_fields = ['id', 'user', 'driver', 'created_at', 'updated_at']

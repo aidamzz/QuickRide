@@ -1,27 +1,58 @@
 # user/views.py
+import logging
 from django.shortcuts import render
 from django.views import View
-from rest_framework import generics, status
+from rest_framework import generics, status, permissions
 from rest_framework.response import Response
 from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework_simplejwt.tokens import RefreshToken
 from rest_framework.views import APIView
 from django.contrib.auth import authenticate
-from django.conf import settings
 import requests
-import logging
-
 from .models import User, Trip
-from .serializers import UserSerializer, LoginSerializer, TripSerializer, UserProfileSerializer, TripDetailSerializer
+from django.conf import settings
+from .serializers import (
+    UserSerializer, 
+    LoginSerializer, 
+    TripSerializer, 
+    UserProfileSerializer, 
+    TripDetailSerializer
+)
+from channels.layers import get_channel_layer
+from asgiref.sync import async_to_sync
 
 
+# Configure logging
+logger = logging.getLogger(__name__)
 class RegisterView(generics.CreateAPIView):
+    """
+    View for user registration. Uses UserSerializer for validation and creation.
+    """
     queryset = User.objects.all()
     serializer_class = UserSerializer
     permission_classes = [AllowAny]
 
+    def create(self, request, *args, **kwargs):
+        # Validate and save the user data
+        serializer = self.get_serializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        user = serializer.save()
+        
+        # Generate JWT tokens
+        refresh = RefreshToken.for_user(user)
+        access = refresh.access_token
+
+        # Return user data along with the JWT tokens
+        return Response({
+            'user': UserSerializer(user).data,
+            'refresh': str(refresh),
+            'access': str(access),
+        }, status=status.HTTP_201_CREATED)
 
 class JWTLoginView(generics.GenericAPIView):
+    """
+    View for user login using JWT tokens. Uses LoginSerializer for validation.
+    """
     serializer_class = LoginSerializer
     permission_classes = [AllowAny]
 
@@ -39,46 +70,27 @@ class JWTLoginView(generics.GenericAPIView):
                 'access': str(refresh.access_token),
             }, status=status.HTTP_200_OK)
         else:
+            logger.warning("Invalid login attempt for phone number: %s", serializer.validated_data['phone_number'])
             return Response({'error': 'Invalid Credentials'}, status=status.HTTP_401_UNAUTHORIZED)
 
-
 class UserRegisterView(View):
+    """
+    View for rendering user registration template.
+    """
     def get(self, request):
         return render(request, 'user/register.html')
 
-
 class UserLoginFormView(View):
+    """
+    View for rendering user login template.
+    """
     def get(self, request):
         return render(request, 'user/login.html')
 
-from django.shortcuts import render
-from django.views import View
-from rest_framework import generics, status, permissions
-from rest_framework.response import Response
-from rest_framework.permissions import AllowAny, IsAuthenticated
-from rest_framework_simplejwt.tokens import RefreshToken
-from django.contrib.auth import authenticate
-from django.conf import settings
-from rest_framework.views import APIView
-import requests
-import logging
-
-from .models import User, Trip
-from .serializers import UserSerializer, LoginSerializer, TripSerializer
-from channels.layers import get_channel_layer
-from asgiref.sync import async_to_sync
-
-def send_trip_update(trip_data):
-    channel_layer = get_channel_layer()
-    async_to_sync(channel_layer.group_send)(
-        'trips',
-        {
-            'type': 'send_trip_update',
-            'text': trip_data
-        }
-    )
-
 class TripCreateView(generics.CreateAPIView):
+    """
+    View for creating a new trip. Uses TripSerializer for validation and creation.
+    """
     queryset = Trip.objects.all()
     serializer_class = TripSerializer
     permission_classes = [IsAuthenticated]
@@ -93,12 +105,15 @@ class TripCreateView(generics.CreateAPIView):
             'driver_name': trip.driver.name if trip.driver else 'N/A',
             'status': trip.get_status_display(),
             'payment_status': trip.get_payment_status_display(),
-            'price': trip.price,
+            'price': float(trip.price),  # Convert Decimal to float
             'created_at': trip.created_at.strftime('%Y-%m-%d %H:%M:%S'),
         }
         send_trip_update(trip_data)
 
 class TripDetailView(generics.RetrieveUpdateAPIView):
+    """
+    View for retrieving and updating trip details. Uses TripSerializer for validation.
+    """
     queryset = Trip.objects.all()
     serializer_class = TripSerializer
     permission_classes = [IsAuthenticated]
@@ -112,49 +127,56 @@ class TripDetailView(generics.RetrieveUpdateAPIView):
         serializer.save()
         return Response(serializer.data)
 
-
 class UserTripListView(generics.ListAPIView):
+    """
+    View for listing all trips associated with the authenticated user.
+    """
     serializer_class = TripSerializer
     permission_classes = [IsAuthenticated]
 
     def get_queryset(self):
         return Trip.objects.filter(user=self.request.user)
 
-
 class DriverTripListView(generics.ListAPIView):
+    """
+    View for listing all trips associated with the authenticated driver.
+    """
     serializer_class = TripSerializer
     permission_classes = [IsAuthenticated]
 
     def get_queryset(self):
         return Trip.objects.filter(driver=self.request.user.driver)
 
-
 class TripRequestView(View):
+    """
+    View for rendering trip request template.
+    """
     def get(self, request):
         return render(request, 'user/request_trip.html')
 
-
-import logging
-import requests
 from rest_framework.views import APIView
+from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from rest_framework import status
-from rest_framework.permissions import IsAuthenticated
-from django.conf import settings
+import requests
+import logging
+
+logger = logging.getLogger(__name__)
 
 class RouteInfoView(APIView):
+    """
+    View for fetching route information using the OpenRouteService API.
+    """
     permission_classes = [IsAuthenticated]
-
+    
     def get(self, request):
-        print(request, '1111111111111111111111111')
         origin = request.query_params.get('origin')
         destination = request.query_params.get('destination')
-        
-        OPENROUTESERVICE_API_KEY = '5b3ce3597851110001cf6248c991167e200a4dd5a694a7d747707b1a'
+
         if not origin or not destination:
             return Response({'error': 'Origin and destination are required.'}, status=status.HTTP_400_BAD_REQUEST)
         
-        api_key = OPENROUTESERVICE_API_KEY
+        api_key = '5b3ce3597851110001cf6248f3302b270ec94f7286a9bdde2335bc24'
         url = 'https://api.openrouteservice.org/v2/directions/driving-car'
         params = {
             'api_key': api_key,
@@ -166,15 +188,15 @@ class RouteInfoView(APIView):
         data = response.json()
         
         if response.status_code == 403:
-            logging.error(f'Forbidden error: {data}')
+            logger.error(f'Forbidden error: {data}')
             return Response({'error': 'Access to the OpenRouteService API has been disallowed. Please check your API key permissions.'}, status=status.HTTP_403_FORBIDDEN)
         
         if response.status_code != 200:
-            logging.error(f'Error fetching route information: {data}')
+            logger.error(f'Error fetching route information: {data}')
             return Response({'error': 'Error fetching route information.'}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
         
         if 'features' not in data or not data['features']:
-            logging.error(f'Unexpected API response structure: {data}')
+            logger.error(f'Unexpected API response structure: {data}')
             return Response({'error': 'Error fetching route information. Invalid response structure.'}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
         
         try:
@@ -194,10 +216,14 @@ class RouteInfoView(APIView):
                 'fare': total_fare,
             })
         except (IndexError, KeyError) as e:
-            logging.error(f'Error processing route information: {e}, response data: {data}')
+            logger.error(f'Error processing route information: {e}, response data: {data}')
             return Response({'error': 'Error processing route information.'}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
+
 class UserProfileView(generics.RetrieveUpdateAPIView):
+    """
+    View for retrieving and updating the authenticated user's profile.
+    """
     queryset = User.objects.all()
     serializer_class = UserProfileSerializer
     permission_classes = [permissions.IsAuthenticated]
@@ -206,6 +232,9 @@ class UserProfileView(generics.RetrieveUpdateAPIView):
         return self.request.user
 
 class UserTripsView(APIView):
+    """
+    View for listing all trips of the authenticated user.
+    """
     permission_classes = [permissions.IsAuthenticated]
 
     def get(self, request):
@@ -214,6 +243,21 @@ class UserTripsView(APIView):
         return Response(serializer.data)
 
 class UserProfileTemplateView(View):
+    """
+    View for rendering user profile template.
+    """
     def get(self, request):
         return render(request, 'user/profile.html')
 
+def send_trip_update(trip_data):
+    """
+    Helper function to send trip updates via Django Channels.
+    """
+    channel_layer = get_channel_layer()
+    async_to_sync(channel_layer.group_send)(
+        'trips',
+        {
+            'type': 'send_trip_update',
+            'text': trip_data
+        }
+    )

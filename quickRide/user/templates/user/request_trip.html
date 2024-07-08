@@ -194,7 +194,7 @@
             })
             .then(response => {
                 if (response.status === 401) {
-                    window.location.href = '/user/login/';
+                    window.location.href = '/user/login-form/';
                 } else {
                     return response.json();
                 }
@@ -206,7 +206,7 @@
                         id: data.id,
                         origin: data.origin,
                         destination: data.destination,
-                        user_name: data.user.name,
+                        user_name: data.user_name,
                         driver_name: data.driver ? data.driver.name : 'N/A',
                         status: data.status,
                         payment_status: data.payment_status,
@@ -230,6 +230,7 @@
         }
 
         function updateTripInfo(tripData) {
+            console.log(tripData, 'ppppppppppppppppppppp')
             const tripDetails = `
                 <p><strong>ID:</strong> ${tripData.id}</p>
                 <p><strong>Origin:</strong> ${tripData.origin}</p>
@@ -267,7 +268,10 @@
         socket.onmessage = function(e) {
             const data = JSON.parse(e.data);
             console.log('New trip data received:', data);
-            updateTripInfo(data);
+
+            // Ensure the data is an object and has the necessary fields
+            const tripData = typeof data === 'string' ? JSON.parse(data) : data;
+            updateTripInfo(tripData);
         };
 
     </script>

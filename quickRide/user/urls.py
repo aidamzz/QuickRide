@@ -1,11 +1,12 @@
 # user/urls.py
 
 from django.urls import path
-from .views import UserProfileView, UserTripsView, UserProfileTemplateView, RegisterView, JWTLoginView, TripCreateView, TripDetailView, UserTripListView, DriverTripListView, TripRequestView, RouteInfoView, UserLoginFormView
+from .views import UserRegisterView, UserProfileView, UserTripsView, UserProfileTemplateView, RegisterView, JWTLoginView, TripCreateView, TripDetailView, UserTripListView, DriverTripListView, TripRequestView, RouteInfoView, UserLoginFormView
 
 urlpatterns = [
-    path('register/', RegisterView.as_view(), name='register'),
+    path('register/', UserRegisterView.as_view(), name='register'),
     path('login/', JWTLoginView.as_view(), name='login'),  # Use the custom JWT login view
+    path('api/register/', RegisterView.as_view(), name='api_register'),
     path('login-form/', UserLoginFormView.as_view(), name='login-form'),  # Use the form view for rendering the login form
     path('trips/', TripCreateView.as_view(), name='trip-create'),
     path('trips/<int:pk>/', TripDetailView.as_view(), name='trip-detail'),

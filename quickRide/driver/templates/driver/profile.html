@@ -100,10 +100,13 @@
 
         function updateDriverInfo() {
             const phone_number = document.getElementById('phone_number').value;
+            const accessToken = localStorage.getItem('access_token'); // Retrieve the token from local storage
             fetch('/driver/profile/api/driver/', {
                 method: 'PUT',
                 headers: {
                     'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${accessToken}`,
+                    'X-CSRFToken': getCookie('csrftoken'),
                 },
                 body: JSON.stringify({ phone_number }),
             })
@@ -125,10 +128,13 @@
         function updateVehicleInfo() {
             const model = document.getElementById('model').value;
             const number = document.getElementById('number').value;
+            const accessToken = localStorage.getItem('access_token'); // Retrieve the token from local storage
             fetch('/driver/profile/api/vehicle/', {
                 method: 'PUT',
                 headers: {
                     'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${accessToken}`,
+                    'X-CSRFToken': getCookie('csrftoken'),
                 },
                 body: JSON.stringify({ model, number }),
             })

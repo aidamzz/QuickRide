@@ -100,7 +100,8 @@
             });
 
             if (response.ok) {
-                alert('Registration successful!');
+                // alert('Registration successful!');
+                window.location.href = '/user/request-trip/';
             } else {
                 const errorData = await response.json();
                 alert(`Registration failed: ${errorData.error}`);
