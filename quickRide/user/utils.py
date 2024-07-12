@@ -1,7 +1,7 @@
 import requests
 
 def get_address_from_coords(lat, lon):
-    api_key = '5b3ce3597851110001cf6248f3302b270ec94f7286a9bdde2335bc24'
+    api_key = ''
     url = f'https://api.openrouteservice.org/geocode/reverse'
     params = {
         'api_key': api_key,
